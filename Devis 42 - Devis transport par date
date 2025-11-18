@@ -1,0 +1,116 @@
+function genererDevis() {
+  const ss = SpreadsheetApp.getActive();
+  const source = ss.getActiveSheet();
+
+  // --- Lecture des données ---
+  const ville = source.getRange("B4").getValue();
+  const salle = source.getRange("B5").getValue();
+
+  const kmParisArtys = source.getRange("G9").getValue();
+  const consoL100 = source.getRange("G14").getValue();
+  const prixGasoil = source.getRange("G15").getValue();
+  const tarifConduite = source.getRange("G16").getValue();
+  const margeKm = source.getRange("G17").getValue();
+  const forfaitCamionJour = source.getRange("F16").getValue();
+  const nbJoursCamion = source.getRange("B19").getValue();
+  const forfaitChargement = source.getRange("B39").getValue();
+
+  const nbRepas = source.getRange("B23").getValue();
+  const nbNuites = source.getRange("B22").getValue();
+  const nbPetitDej = source.getRange("B24").getValue();
+  const nbRegisseurs = source.getRange("G22").getValue();
+
+  // --- Calculs du tableau (déjà faits dans Sheet) ---
+  const distTotale = source.getRange("B28").getValue();
+  const distAvecMarge = source.getRange("B29").getValue();
+  const coutCarburant = source.getRange("B30").getValue();
+  const tempsConduite = source.getRange("B32").getValue();
+  const coutConduite = source.getRange("B33").getValue();
+  const totalPeages = source.getRange("B35").getValue();
+  const totalLocation = source.getRange("B37").getValue();
+  const totalNuites = source.getRange("B42").getValue();
+  const totalRepas = source.getRange("B43").getValue();
+  const totalPetitDej = source.getRange("B44").getValue();
+  const totalBillets = source.getRange("B45").getValue();
+  const totalPriseCharge = totalNuites + totalRepas + totalPetitDej + totalBillets;
+
+  // === CRÉATION DE L’ONGLET ===
+  const nomBase = salle ? ("Devis_" + salle) : ("Devis_" + ville);
+  let nomOnglet = nomBase;
+  let c = 1;
+
+  while (ss.getSheetByName(nomOnglet)) {
+    nomOnglet = nomBase + "_" + c;
+    c++;
+  }
+
+  const sheet = ss.insertSheet(nomOnglet);
+  const today = Utilities.formatDate(new Date(), "Europe/Paris", "dd/MM/yyyy");
+
+  // === TABLEAU SIMPLIFIÉ ===
+  const lignes = [
+    ["Devis – " + (salle || ville), ""],                // A1
+    ["Devis édité le :", today],                       // A2
+    ["--------------------",""],                         // A3
+    ["", ""],
+    ["Ville prestation", ville],
+    ["Salle", salle || "—"],
+    ["", ""],
+    ["Transport", ""],
+    ["Distance totale (km)", distAvecMarge],
+    ["Coût carburant (conso : " + consoL100 + "L/100 – prix : " + prixGasoil + "€/L)", coutCarburant],
+    ["Péages totaux", totalPeages],
+    ["Coût salaires conduite (" + tempsConduite + " h)", coutConduite],
+    ["Total location camion (" + nbJoursCamion + " jours)", totalLocation],
+    ["Forfait chargement/déchargement", forfaitChargement],
+    ["", ""],
+    ["Prise en charge cie", ""],
+    ["Nuités (" + nbNuites + ")", totalNuites],
+    ["Repas (" + nbRepas + ")", totalRepas],
+    ["Petits déj (" + nbPetitDej + ")", totalPetitDej],
+    ["Billets régisseurs (" + (nbRegisseurs * 2) + " billets)", totalBillets],
+    ["Total prise en charge (€)", totalPriseCharge],
+    ["", ""],
+    ["TOTAL TTC", "=SUM(B10:B14)+ B21"]                 // formule automatique
+  ];
+
+  sheet.getRange(1, 1, lignes.length, 2).setValues(lignes);
+
+  // === MISE EN PAGE PRO ===
+  sheet.setColumnWidths(1, 2, 350);
+  const lastRow = lignes.length;
+
+  const range = sheet.getRange(1, 1, lastRow, 2);
+  range.setFontFamily("Arial");
+
+  // Titres
+  sheet.getRange("A1").setFontSize(16).setFontWeight("bold");
+  sheet.getRange("A8").setFontWeight("bold");
+  sheet.getRange("A16").setFontWeight("bold");
+
+  // Cadre général
+  range.setBorder(true, true, true, true, false, false, "#cccccc", SpreadsheetApp.BorderStyle.SOLID);
+
+  // Format €
+  sheet.getRange("B1:B" + lastRow).setNumberFormat("#,##0.00 €");
+  // Format kilomètres pour B9
+sheet.getRange("B9").setNumberFormat("#,##0.0 \"km\"");
+
+
+  // Mise en évidence du total TTC
+  sheet.getRange("A" + lastRow + ":B" + lastRow)
+    .setFontSize(14)
+    .setFontWeight("bold")
+    .setBackground("#d9ead3");
+
+  sheet.autoResizeColumns(1, 2);
+}
+
+// === MENU ===
+function onOpen() {
+  SpreadsheetApp.getUi()
+    .createMenu("Devis 42")
+    .addItem("Générer un devis", "genererDevis")
+    .addToUi();
+}
+
